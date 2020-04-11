@@ -314,10 +314,12 @@ public class EntityEventHandler implements Listener
         if(!GriefPrevention.instance.claimsEnabledForWorld(world)) return;
         
         //FEATURE: explosions don't destroy surface blocks by default
-        boolean isCreeper = (entity != null && entity.getType() == EntityType.CREEPER);
+		boolean isCreeper = (entity != null && entity.getType() == EntityType.CREEPER);
+
+        boolean isWither = (entity != null && (entity.getType() == EntityType.WITHER || entity.getType() == EntityType.WITHER_SKULL));
         
         boolean applySurfaceRules = world.getEnvironment() == Environment.NORMAL && ((isCreeper && GriefPrevention.instance.config_blockSurfaceCreeperExplosions) || (!isCreeper && GriefPrevention.instance.config_blockSurfaceOtherExplosions));
-        
+
         //special rule for creative worlds: explosions don't destroy anything
         if(GriefPrevention.instance.creativeRulesApply(location))
         {
@@ -334,6 +336,7 @@ public class EntityEventHandler implements Listener
         //make a list of blocks which were allowed to explode
         List<Block> explodedBlocks = new ArrayList<Block>();
         Claim cachedClaim = null;
+        Boolean isAdmin = false;
         for(int i = 0; i < blocks.size(); i++)
         {
             Block block = blocks.get(i);
@@ -346,8 +349,14 @@ public class EntityEventHandler implements Listener
             if(claim != null)
             {
                 cachedClaim = claim;
+				isAdmin = claim.isAdminClaim();
             }
-                    
+            //Can Wither destroy user's claimed blocks?
+            if(isWither && !GriefPrevention.instance.config_blockLandClaimWitherExplosions && !isAdmin && block.getWorld().getEnvironment() == Environment.NETHER )
+			{
+				explodedBlocks.add(block);
+				continue;
+			}
             //if yes, apply claim exemptions if they should apply
             if(claim != null && (claim.areExplosivesAllowed || !GriefPrevention.instance.config_blockClaimExplosions))
             {
